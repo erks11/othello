@@ -110,8 +110,8 @@
           <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
-          <td><div class="white-stone"></div></td>
-          <td><div class="black-stone"></div></td>
+          <td><div></div></td>
+          <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
@@ -121,8 +121,8 @@
           <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
-          <td><div class="black-stone"></div></td>
-          <td><div class="white-stone"></div></td>
+          <td><div></div></td>
+          <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
           <td><div></div></td>
@@ -181,26 +181,7 @@
       </table>
     </div>
     <script>
-      var list = document.querySelectorAll("#othello td div");
-      for (var i = 0; i < list.length; i++) {
-        list[i].addEventListener(
-          "click",
-          (function(i2) {
-            return function(e) {
-              if (list[i2].classList.contains("black-stone")) {
-                list[i2].classList.add("white-stone");
-                list[i2].classList.remove("black-stone");
-              } else if (list[i2].classList.contains("white-stone")) {
-                list[i2].classList.remove("white-stone");
-              } else {
-                list[i2].classList.add("black-stone");
-              }
-            };
-          })(i),
-          false
-        );
-      }
-
+      // reflectは
       var td_list = document.querySelectorAll("#othello td");
       var statusArr = [
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -213,8 +194,48 @@
         [0, 0, 0, 0, 0, 0, 0, 0]
       ];
 
+      let list = document.querySelectorAll("#othello td div");
+
+      // ここでstatusArrの状態を反映する
+      function reflect(statusArr) {
+        // 64マス全てに対して、どうなってるのか判断したい
+        for (var i = 0; i < statusArr.length - 1; i++) {
+          for (var k = 0; k < statusArr[i].length - 1; k++) {
+            if (statusArr[i][k] === 1) {
+              list[8 * i + k].setAttribute("class", "white-stone");
+            } else if (statusArr[i][k] === 2) {
+              list[8 * i + k].setAttribute("class", "black-stone");
+            }
+          }
+        }
+      }
+
+      for (var i = 0; i < list.length; i++) {
+        list[i].addEventListener(
+          "click",
+          (function(i2) {
+            return function(e) {
+              // statusArrをクリックした状態に反映したい
+              let x = Math.floor(i2 / 8);
+              let y = i2 % 8;
+              console.log(x, y);
+              if (statusArr[x][y] === 2) {
+                statusArr[x][y] = 1;
+              } else if (statusArr[x][y] === 1) {
+                statusArr[x][y] = 0;
+              } else {
+                statusArr[x][y] = 2;
+              }
+              reflect(statusArr);
+            };
+          })(i),
+          false
+        );
+      }
+
       // 黒が自分とする
       var mycolor = 2;
+
       // 白が1　黒が2
       // 64マス全てに対して、置けるかどうか判断したい
       for (var i = 0; i < statusArr.length; i++) {
@@ -225,7 +246,7 @@
           }
           // 置けるかどうか判断する
           if (judgeActive(mycolor, i, k)) {
-            td_list[8 * k + i].classList.add("active");
+            td_list[8 * i + k].classList.add("active");
           }
         }
       }
@@ -323,6 +344,11 @@
         } else {
         }
       }
+
+      function init() {
+        reflect(statusArr);
+      }
+      window.onload = init;
     </script>
   </body>
 </html>
