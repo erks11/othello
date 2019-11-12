@@ -216,46 +216,112 @@
       // 黒が自分とする
       var mycolor = 2;
       // 白が1　黒が2
+      // 64マス全てに対して、置けるかどうか判断したい
       for (var i = 0; i < statusArr.length; i++) {
         for (var k = 0; k < statusArr[i].length; k++) {
+          // すでに置いてあったらスルーする
           if (statusArr[i][k] != 0) {
             continue;
           }
+          // 置けるかどうか判断する
           if (judgeActive(mycolor, i, k)) {
             td_list[8 * k + i].classList.add("active");
           }
         }
       }
-
+      // 周囲8マスをみてる
       function judgeActive(mycolor, i, k) {
         for (var i2 = i - 1; i2 <= i + 1; i2++) {
           for (var k2 = k - 1; k2 <= k + 1; k2++) {
-            console.log(i2, k2);
-            return searchOneway({ x: i, y: k }, i2 - i, k2 - k, mycolor);
-          }
-        }
-      }
-
-      function searchOneway(cood, xv, yv, mycolor) {
-        var result = false;
-        var arr = [];
-        var x = cood.x;
-        var y = cood.y;
-        outer: for (var i = x + xv; i < statusArr.length && i >= 0; i += xv) {
-          for (var k = y + yv; y < statusArr[i].length && k >= 0; k += yv) {
-            var stat = statusArr[i][k];
-            arr.push(statusArr[i][k]);
-            if (stat == 0 || stat == mycolor) {
-              break outer;
+            // 自分自身なのでスルー
+            if (i2 === i && k2 === k) {
+              continue;
+            }
+            let res = searchOneway({ x: i, y: k }, i2 - i, k2 - k, mycolor);
+            if (res) {
+              return true;
             }
           }
         }
-        // arr[0]が空白じゃなくて、自分の色でもない
-        // arr[1]以上にずっと空白がないかつ自分の色がいる
-        if (arr[arr.length - 1] == mycolor) {
-          result = true;
+        return false;
+      }
+
+      function searchOneway(cood, xv, yv, mycolor) {
+        let result = false;
+        let arr = [];
+        let x = cood.x;
+        let y = cood.y;
+        // 斜めの場合
+        if (xv != 0 && yv != 0) {
+          let new_cood = { x: x, y: y };
+          while (
+            new_cood.x < statusArr.length - 1 &&
+            new_cood.x >= 0 &&
+            (new_cood.y < statusArr.length - 1 && new_cood.y >= 0)
+          ) {
+            new_cood.x += xv;
+            new_cood.y += yv;
+            if (new_cood.x > 0 && new_cood.y > 0) {
+              let stat = statusArr[new_cood.x][new_cood.y];
+              arr.push(stat);
+              // 隣が空白か、自分の色だったら抜ける
+              if (stat == 0 || stat == mycolor) {
+                break;
+              }
+            }
+          }
+          // arr[0]が空白じゃなくて、自分の色でもない
+          // arr[1]以上にずっと空白がないかつ自分の色がいる
+          if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
+            result = true;
+          }
+          return result;
         }
-        return result;
+        // 縦方向の場合
+        else if (xv === 0) {
+          for (let k = y + yv; k < statusArr[i].length - 1 && k >= 0; k += yv) {
+            if (k > 0) {
+              let stat = statusArr[x][k];
+              arr.push(statusArr[x][k]);
+              // 隣が空白か、自分の色だったら抜ける
+              if (stat == 0 || stat == mycolor) {
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+          // arr[0]が空白じゃなくて、自分の色でもない
+          // arr[1]以上にずっと空白がないかつ自分の色がいる
+          if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
+            result = true;
+          }
+
+          return result;
+        }
+        // 横方向の場合
+        else if (yv === 0) {
+          for (let i = x + xv; i < statusArr.length - 1 && i >= 0; i += xv) {
+            if (i > 0) {
+              let stat = statusArr[i][y];
+              arr.push(statusArr[i][y]);
+              // 隣が空白か、自分の色だったら抜ける
+              if (stat == 0 || stat == mycolor) {
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+
+          // arr[0]が空白じゃなくて、自分の色でもない
+          // arr[1]以上にずっと空白がないかつ自分の色がいる
+          if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
+            result = true;
+          }
+          return result;
+        } else {
+        }
       }
     </script>
   </body>
