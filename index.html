@@ -194,15 +194,15 @@
         [0, 0, 0, 0, 0, 0, 0, 0]
       ];
       // 黒が自分とする
-      let mycolor = 2;
+      let currenTurnColor = 2;
 
       let list = document.querySelectorAll("#othello td div");
 
       // ここでstatusArrの状態を反映する
-      function reflect(statusArr) {
+      function reflect(statusArr, mycolor) {
         // 64マス全てに対して、どうなってるのか判断したい
-        for (var i = 0; i < statusArr.length - 1; i++) {
-          for (var k = 0; k < statusArr[i].length - 1; k++) {
+        for (var i = 0; i < statusArr.length; i++) {
+          for (var k = 0; k < statusArr[i].length; k++) {
             if (statusArr[i][k] === 1) {
               list[8 * i + k].setAttribute("class", "white-stone");
             } else if (statusArr[i][k] === 2) {
@@ -210,11 +210,11 @@
             }
           }
         }
-        judgeBoard(statusArr);
+        judgeBoard(statusArr, mycolor);
       }
 
       // clickしたときにオセロを置きたい
-      function putOthello(statusArr) {
+      function putOthello(statusArr, mycolor) {
         for (var i = 0; i < list.length; i++) {
           list[i].addEventListener(
             "click",
@@ -223,14 +223,21 @@
                 // statusArrをクリックした状態に反映したい
                 let x = Math.floor(i2 / 8);
                 let y = i2 % 8;
-                if (statusArr[x][y] === 2) {
-                  statusArr[x][y] = 1;
-                } else if (statusArr[x][y] === 1) {
-                  statusArr[x][y] = 0;
-                } else {
-                  statusArr[x][y] = 2;
+                if (statusArr[x][y]) {
+                  return;
                 }
-                reflect(statusArr);
+                if (!td_list[i2].classList.contains("active")) {
+                  return;
+                }
+                statusArr[x][y] = mycolor;
+                reverseStone(statusArr, { x: x, y: y });
+
+                if (mycolor === 2) {
+                  mycolor = 1;
+                } else {
+                  mycolor = 2;
+                }
+                reflect(statusArr, mycolor);
               };
             })(i),
             false
@@ -238,7 +245,33 @@
         }
       }
 
-      function judgeBoard(statusArr) {
+      function reverseStone(statusArr, cood) {
+        let x = cood.x;
+        let y = cood.y;
+        // 置かれた石の周り８方向をみたい
+        let resArr = judgeGridActive(
+          statusArr,
+          statusArr[x][y],
+          cood.x,
+          cood.y
+        );
+
+        // searchOnewayでarrとxv,yvを受け取り、statusArrを変えてreturnしたい
+        resArr.forEach(res => {
+          if (res.result) {
+            res.arr.forEach(i => {
+              if (i != statusArr[x][y]) {
+                x += res.xv;
+                y += res.yv;
+                statusArr[x][y] = statusArr[cood.x][cood.y];
+              }
+            });
+          }
+        });
+        return statusArr;
+      }
+
+      function judgeBoard(statusArr, mycolor) {
         // 白が1　黒が2
         // 64マス全てに対して、置けるかどうか判断したい
         for (var i = 0; i < statusArr.length; i++) {
@@ -250,35 +283,40 @@
             }
             // 置けるかどうか判断する
             // 置けるならactiveを表示　置けなかったらactiveを非表示にする
-            if (judgeGridActive(statusArr, mycolor, i, k)) {
-              td_list[8 * i + k].setAttribute("class", "active");
-            }
+            let resArr = judgeGridActive(statusArr, mycolor, i, k);
+            // resArrのresultに一つでもtrueがあればそのtdをactiveにする
+            resArr.forEach(res => {
+              if (res.result) {
+                td_list[8 * i + k].setAttribute("class", "active");
+              }
+            });
           }
         }
+
         return statusArr;
       }
 
       // 周囲8マスをみてる
       function judgeGridActive(statusArr, mycolor, i, k) {
+        let res;
+        let resArr = [];
         for (var i2 = i - 1; i2 <= i + 1; i2++) {
           for (var k2 = k - 1; k2 <= k + 1; k2++) {
             // 自分自身なのでスルー
             if (i2 === i && k2 === k) {
               continue;
             }
-            let res = searchOneway(
+            res = searchOneway(
               statusArr,
               { x: i, y: k },
               i2 - i,
               k2 - k,
               mycolor
             );
-            if (res) {
-              return true;
-            }
+            resArr.push(res);
           }
         }
-        return false;
+        return resArr;
       }
 
       function searchOneway(statusArr, cood, xv, yv, mycolor) {
@@ -289,13 +327,18 @@
         // 斜めの場合
         let new_cood = { x: x, y: y };
         while (
-          new_cood.x < statusArr.length - 1 &&
+          new_cood.x < 8 &&
           new_cood.x >= 0 &&
-          (new_cood.y < statusArr.length - 1 && new_cood.y >= 0)
+          (new_cood.y < 8 && new_cood.y >= 0)
         ) {
           new_cood.x += xv;
           new_cood.y += yv;
-          if (new_cood.x > 0 && new_cood.y > 0) {
+          if (
+            new_cood.x > 0 &&
+            new_cood.y > 0 &&
+            new_cood.x < 8 &&
+            new_cood.y < 8
+          ) {
             let stat = statusArr[new_cood.x][new_cood.y];
             arr.push(stat);
             // 隣が空白か、自分の色だったら抜ける
@@ -309,11 +352,11 @@
         if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
           result = true;
         }
-        return result;
+        return { arr: arr, xv: xv, yv: yv, result: result };
       }
       function init() {
-        reflect(boardStatus);
-        putOthello(boardStatus);
+        reflect(boardStatus, currenTurnColor);
+        putOthello(boardStatus, currenTurnColor);
       }
       window.onload = init;
     </script>
