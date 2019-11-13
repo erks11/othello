@@ -183,7 +183,7 @@
         </tr>
         <tr>
           <td>
-            <button>reset</button>
+            <button id="reset">reset</button>
             <button>GiveUp</button>
           </td>
         </tr>
@@ -194,18 +194,6 @@
     </div>
     <script>
       let td_list = document.querySelectorAll("#othello td");
-      let boardStatus = [
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 2, 0, 0, 0],
-        [0, 0, 0, 2, 1, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0]
-      ];
-      // 黒が自分とする
-      let currenTurnColor = 2;
       let list = document.querySelectorAll("#othello td div");
 
       // ここでstatusArrの状態を反映する
@@ -217,10 +205,21 @@
               list[8 * i + k].setAttribute("class", "white-stone");
             } else if (statusArr[i][k] === 2) {
               list[8 * i + k].setAttribute("class", "black-stone");
+            } else {
+              list[8 * i + k].removeAttribute("class");
             }
           }
         }
         judgeBoard(statusArr, mycolor);
+      }
+
+      // buttonを押したらresetしたい
+      function setOnClickToReset() {
+        // button
+        let resetButton = document.querySelector("#reset");
+        resetButton.addEventListener("click", function() {
+          init();
+        });
       }
 
       // clickしたときにオセロを置きたい
@@ -427,6 +426,19 @@
         return { arr: arr, xv: xv, yv: yv, result: result };
       }
       function init() {
+        setOnClickToReset();
+        const boardStatus = [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 1, 2, 0, 0, 0],
+          [0, 0, 0, 2, 1, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+        // 黒が自分とする
+        let currenTurnColor = 2;
         reflect(boardStatus, currenTurnColor);
         putOthello(boardStatus, currenTurnColor);
       }
