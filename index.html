@@ -195,7 +195,8 @@
       ];
       // 黒が自分とする
       let currenTurnColor = 2;
-
+      let isEnd = false;
+      let passCount = { black: 0, white: 0 };
       let list = document.querySelectorAll("#othello td div");
 
       // ここでstatusArrの状態を反映する
@@ -214,7 +215,7 @@
       }
 
       // clickしたときにオセロを置きたい
-      function putOthello(statusArr, mycolor) {
+      function putOthello(statusArr, mycolor, pass, end) {
         for (var i = 0; i < list.length; i++) {
           list[i].addEventListener(
             "click",
@@ -238,6 +239,24 @@
                   mycolor = 2;
                 }
                 reflect(statusArr, mycolor);
+                // 置ける場所がない場合はpass
+                while (
+                  !document.querySelectorAll("#othello td.active").length
+                ) {
+                  if (mycolor === 2) {
+                    pass.black++;
+                    mycolor = 1;
+                  } else {
+                    pass.white++;
+                    mycolor = 2;
+                  }
+                  reflect(statusArr, mycolor);
+                  // passが２回だったらゲーム終了する
+                  if (pass.black >= 2 || pass.white >= 2) {
+                    end = true;
+                    break;
+                  }
+                }
               };
             })(i),
             false
@@ -246,18 +265,20 @@
       }
 
       function reverseStone(statusArr, cood) {
-        let x = cood.x;
-        let y = cood.y;
         // 置かれた石の周り８方向をみたい
         let resArr = judgeGridActive(
           statusArr,
-          statusArr[x][y],
+          statusArr[cood.x][cood.y],
           cood.x,
           cood.y
         );
 
         // searchOnewayでarrとxv,yvを受け取り、statusArrを変えてreturnしたい
         resArr.forEach(res => {
+          // resArrのresultがtrueのものに対して、処理を行う
+          // ここでx,yを定義し、多方向でひっくり返せるようにする
+          let x = cood.x;
+          let y = cood.y;
           if (res.result) {
             res.arr.forEach(i => {
               if (i != statusArr[x][y]) {
@@ -276,13 +297,14 @@
         // 64マス全てに対して、置けるかどうか判断したい
         for (var i = 0; i < statusArr.length; i++) {
           for (var k = 0; k < statusArr[i].length; k++) {
+            // いったんactiveを非表示にする
             td_list[8 * i + k].removeAttribute("class");
             // すでに置いてあったらスルーする
             if (statusArr[i][k] != 0) {
               continue;
             }
             // 置けるかどうか判断する
-            // 置けるならactiveを表示　置けなかったらactiveを非表示にする
+            // 置けるならactiveを表示
             let resArr = judgeGridActive(statusArr, mycolor, i, k);
             // resArrのresultに一つでもtrueがあればそのtdをactiveにする
             resArr.forEach(res => {
@@ -292,7 +314,6 @@
             });
           }
         }
-
         return statusArr;
       }
 
@@ -356,7 +377,7 @@
       }
       function init() {
         reflect(boardStatus, currenTurnColor);
-        putOthello(boardStatus, currenTurnColor);
+        putOthello(boardStatus, currenTurnColor, passCount, isEnd);
       }
       window.onload = init;
     </script>
