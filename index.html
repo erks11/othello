@@ -195,8 +195,6 @@
       ];
       // 黒が自分とする
       let currenTurnColor = 2;
-      let isEnd = false;
-      let passCount = { black: 0, white: 0 };
       let list = document.querySelectorAll("#othello td div");
 
       // ここでstatusArrの状態を反映する
@@ -215,7 +213,7 @@
       }
 
       // clickしたときにオセロを置きたい
-      function putOthello(statusArr, mycolor, pass, end) {
+      function putOthello(statusArr, mycolor) {
         for (var i = 0; i < list.length; i++) {
           list[i].addEventListener(
             "click",
@@ -239,21 +237,23 @@
                   mycolor = 2;
                 }
                 reflect(statusArr, mycolor);
+
                 // 置ける場所がない場合はpass
+                let pass = 0;
                 while (
                   !document.querySelectorAll("#othello td.active").length
                 ) {
                   if (mycolor === 2) {
-                    pass.black++;
                     mycolor = 1;
                   } else {
-                    pass.white++;
                     mycolor = 2;
                   }
+                  pass++;
                   reflect(statusArr, mycolor);
                   // passが２回だったらゲーム終了する
-                  if (pass.black >= 2 || pass.white >= 2) {
-                    end = true;
+                  if (pass >= 2) {
+                    const winner = countStone(statusArr);
+                    console.log(winner);
                     break;
                   }
                 }
@@ -262,6 +262,30 @@
             false
           );
         }
+      }
+
+      // 黒と白どちらが多いかを数えて、勝敗を決める
+      function countStone(statusArr) {
+        let whiteCount = 0;
+        let blackCount = 0;
+        let winner;
+        for (let i = 0; i < statusArr.length; i++) {
+          for (let k = 0; k < statusArr[i].length; k++) {
+            if (statusArr[i][k] === 1) {
+              whiteCount++;
+            } else if (statusArr[i][k] === 2) {
+              blackCount++;
+            }
+          }
+        }
+        if (whiteCount === blackCount) {
+          winner = 0;
+        } else if (whiteCount > blackCount) {
+          winner = 1;
+        } else {
+          winner = 2;
+        }
+        return winner;
       }
 
       function reverseStone(statusArr, cood) {
@@ -377,7 +401,7 @@
       }
       function init() {
         reflect(boardStatus, currenTurnColor);
-        putOthello(boardStatus, currenTurnColor, passCount, isEnd);
+        putOthello(boardStatus, currenTurnColor);
       }
       window.onload = init;
     </script>
