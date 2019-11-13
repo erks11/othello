@@ -286,10 +286,8 @@
                   tdtag.setAttribute("class", "label-you");
                 }
                 const res = countStone(statusArr);
-                let stoneStatus = document.querySelector(
-                  "#battle-status td#stone"
-                );
-                stoneStatus.innerHTML = "黒" + res.black + "白" + res.white;
+                let stoneStatus = document.querySelector("#stone");
+                stoneStatus.innerHTML = "黒:" + res.black + "白:" + res.white;
               };
             })(i),
             false
@@ -439,6 +437,10 @@
         ];
         // 黒が自分とする
         let currenTurnColor = 2;
+        let stoneStatus = document.querySelector("#stone");
+        stoneStatus.innerHTML = "黒:2白:2";
+        let tdtag = document.querySelector("#battle-status td div");
+        tdtag.setAttribute("class", "label-you");
         reflect(boardStatus, currenTurnColor);
         putOthello(boardStatus, currenTurnColor);
       }
