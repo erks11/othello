@@ -176,7 +176,10 @@
           <td><div></div></td>
         </tr>
         <tr>
-          <td id="stone-status"></td>
+          <td id="stone"></td>
+        </tr>
+        <tr>
+          <td id="winner"></td>
         </tr>
         <tr>
           <td>
@@ -263,13 +266,16 @@
                     // 黒と白、石の数を数える
                     const res = countStone(statusArr);
                     let winner;
+                    let winnerStatus = document.querySelector(
+                      "#battle-status td#winner"
+                    );
                     // 勝敗を決める
                     if (res.white === res.black) {
-                      winner = 0;
+                      winnerStatus.innerHTML = "ひきわけ〜〜";
                     } else if (res.white > res.black) {
-                      winner = 1;
+                      winnerStatus.innerHTML = "わたしのかち";
                     } else {
-                      winner = 2;
+                      winnerStatus.innerHTML = "あなたのかち";
                     }
                     break;
                   }
@@ -282,9 +288,8 @@
                 }
                 const res = countStone(statusArr);
                 let stoneStatus = document.querySelector(
-                  "#battle-status td#stone-status"
+                  "#battle-status td#stone"
                 );
-                console.log(res);
                 stoneStatus.innerHTML = "黒" + res.black + "白" + res.white;
               };
             })(i),
