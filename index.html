@@ -193,25 +193,8 @@
       </table>
     </div>
     <script>
-      let td_list = document.querySelectorAll("#othello td");
-      let list = document.querySelectorAll("#othello td div");
-
-      // ここでstatusArrの状態を反映する
-      function reflect(statusArr, mycolor) {
-        // 64マス全てに対して、どうなってるのか判断したい
-        for (var i = 0; i < statusArr.length; i++) {
-          for (var k = 0; k < statusArr[i].length; k++) {
-            if (statusArr[i][k] === 1) {
-              list[8 * i + k].setAttribute("class", "white-stone");
-            } else if (statusArr[i][k] === 2) {
-              list[8 * i + k].setAttribute("class", "black-stone");
-            } else {
-              list[8 * i + k].removeAttribute("class");
-            }
-          }
-        }
-        judgeBoard(statusArr, mycolor);
-      }
+      const td_list = document.querySelectorAll("#othello td");
+      const list = document.querySelectorAll("#othello td div");
 
       // buttonを押したらresetしたい
       function setOnClickToReset() {
@@ -227,8 +210,9 @@
         let winnerStatus = document.querySelector("#winner");
         winnerStatus.innerHTML = "";
       }
+
       // clickしたときにオセロを置きたい
-      function putOthello(statusArr, mycolor) {
+      function setOnClickToGrid(statusArr, mycolor) {
         for (var i = 0; i < list.length; i++) {
           list[i].addEventListener(
             "click",
@@ -237,59 +221,16 @@
                 // statusArrをクリックした状態に反映したい
                 let x = Math.floor(i2 / 8);
                 let y = i2 % 8;
-                if (statusArr[x][y]) {
+                if (statusArr[x][y] > 0) {
                   return;
                 }
-                if (!td_list[i2].classList.contains("active")) {
+                if (statusArr[x][y] != -1) {
                   return;
                 }
                 statusArr[x][y] = mycolor;
-                reverseStone(statusArr, { x: x, y: y });
 
-                if (mycolor === 2) {
-                  mycolor = 1;
-                } else {
-                  mycolor = 2;
-                }
-                reflect(statusArr, mycolor);
-
-                // 置ける場所がない場合はpass
-                let pass = 0;
-                while (
-                  !document.querySelectorAll("#othello td.active").length
-                ) {
-                  if (mycolor === 2) {
-                    mycolor = 1;
-                  } else {
-                    mycolor = 2;
-                  }
-                  pass++;
-                  reflect(statusArr, mycolor);
-                  // passが２回だったらゲーム終了する
-                  if (pass >= 2) {
-                    // 黒と白、石の数を数える
-                    const res = countStone(statusArr);
-                    let winnerStatus = document.querySelector("#winner");
-                    // 勝敗を決める
-                    if (res.white === res.black) {
-                      winnerStatus.innerHTML = "引き分け";
-                    } else if (res.white > res.black) {
-                      winnerStatus.innerHTML = "わたしの勝ち";
-                    } else {
-                      winnerStatus.innerHTML = "あなたの勝ち";
-                    }
-                    break;
-                  }
-                }
-                let tdtag = document.querySelector("#battle-status td div");
-                if (mycolor === 1) {
-                  tdtag.setAttribute("class", "label-me");
-                } else {
-                  tdtag.setAttribute("class", "label-you");
-                }
-                const res = countStone(statusArr);
-                let stoneStatus = document.querySelector("#stone");
-                stoneStatus.innerHTML = "黒:" + res.black + "白:" + res.white;
+                mycolor = changeTurn(mycolor);
+                executeOneTurn(statusArr, { x: x, y: y }, mycolor);
               };
             })(i),
             false
@@ -297,11 +238,94 @@
         }
       }
 
+      // オセロ１ターンの処理
+      function executeOneTurn(statusArr, cood, mycolor) {
+        let isFinish = false;
+        // ひっくり返す
+        reverseStone(statusArr, { x: cood.x, y: cood.y });
+
+        // 次における場所があるかを判断する
+        let result = judgeBoard(statusArr, mycolor);
+        // 反映する
+        reflect(result.statusArr);
+        reflectStatus(result.statusArr, mycolor, isFinish);
+
+        // pass判定
+        let pass = 0;
+        while (!result.isContinue) {
+          mycolor = changeTurn(mycolor);
+          pass++;
+          // passが２回だったらゲーム終了する
+          if (pass >= 2) {
+            isFinish = true;
+            reflectStatus(result.statusArr, mycolor, isFinish);
+            break;
+          }
+
+          result = judgeBoard(statusArr, mycolor);
+          reflect(statusArr);
+          reflectStatus(result.statusArr, mycolor, isFinish);
+        }
+      }
+
+      // statusArrの状態を盤面に反映
+      function reflect(statusArr) {
+        // 64マス全てに対して、どうなってるのか判断したい
+        for (var i = 0; i < statusArr.length; i++) {
+          for (var k = 0; k < statusArr[i].length; k++) {
+            td_list[8 * i + k].removeAttribute("class");
+            if (statusArr[i][k] === -1) {
+              td_list[8 * i + k].setAttribute("class", "active");
+            } else if (statusArr[i][k] === 1) {
+              list[8 * i + k].setAttribute("class", "white-stone");
+            } else if (statusArr[i][k] === 2) {
+              list[8 * i + k].setAttribute("class", "black-stone");
+            } else {
+              list[8 * i + k].removeAttribute("class");
+            }
+          }
+        }
+        return;
+      }
+
+      function reflectStatus(statusArr, mycolor, isFinish) {
+        let tdtag = document.querySelector("#battle-status td div");
+        if (mycolor === 1) {
+          tdtag.setAttribute("class", "label-me");
+        } else {
+          tdtag.setAttribute("class", "label-you");
+        }
+        const res = countStone(statusArr);
+        let stoneStatus = document.querySelector("#stone");
+        stoneStatus.innerHTML = "●:" + res.black + " ○:" + res.white;
+        if (isFinish) {
+          // 黒と白、石の数を数える
+          const res = countStone(statusArr);
+          let winnerStatus = document.querySelector("#winner");
+          // 勝敗を決める
+          if (res.white === res.black) {
+            winnerStatus.innerHTML = "引き分け";
+          } else if (res.white > res.black) {
+            winnerStatus.innerHTML = "わたしの勝ち";
+          } else {
+            winnerStatus.innerHTML = "あなたの勝ち";
+          }
+        }
+      }
+
+      function changeTurn(mycolor) {
+        if (mycolor === 2) {
+          mycolor = 1;
+        } else {
+          mycolor = 2;
+        }
+        return mycolor;
+      }
+
       // 黒と白の石の数を数える
       function countStone(statusArr) {
         let whiteCount = 0;
         let blackCount = 0;
-        let winner;
         for (let i = 0; i < statusArr.length; i++) {
           for (let k = 0; k < statusArr[i].length; k++) {
             if (statusArr[i][k] === 1) {
@@ -345,26 +369,32 @@
       function judgeBoard(statusArr, mycolor) {
         // 白が1　黒が2
         // 64マス全てに対して、置けるかどうか判断したい
+        let isContinue = false;
         for (var i = 0; i < statusArr.length; i++) {
           for (var k = 0; k < statusArr[i].length; k++) {
-            // いったんactiveを非表示にする
-            td_list[8 * i + k].removeAttribute("class");
-            // すでに置いてあったらスルーする
-            if (statusArr[i][k] != 0) {
+            if (statusArr[i][k] > 0) {
+              // すでに置いてあったらスルーする
               continue;
             }
+            // いったんactiveを非表示にする
+            if (statusArr[i][k] === -1) {
+              statusArr[i][k] = 0;
+            }
+
             // 置けるかどうか判断する
             // 置けるならactiveを表示
             let resArr = judgeGridActive(statusArr, mycolor, i, k);
             // resArrのresultに一つでもtrueがあればそのtdをactiveにする
             resArr.forEach(res => {
               if (res.result) {
-                td_list[8 * i + k].setAttribute("class", "active");
+                isContinue = true;
+                statusArr[i][k] = -1;
               }
             });
           }
         }
-        return statusArr;
+
+        return { isContinue: isContinue, statusArr: statusArr };
       }
 
       // 周囲8マスをみてる
@@ -412,7 +442,7 @@
             let stat = statusArr[new_cood.x][new_cood.y];
             arr.push(stat);
             // 隣が空白か、自分の色だったら抜ける
-            if (stat == 0 || stat == mycolor) {
+            if (stat <= 0 || stat == mycolor) {
               break;
             }
           }
@@ -424,6 +454,7 @@
         }
         return { arr: arr, xv: xv, yv: yv, result: result };
       }
+
       function init() {
         const boardStatus = [
           [0, 0, 0, 0, 0, 0, 0, 0],
@@ -437,15 +468,11 @@
         ];
         // 黒が自分とする
         let currenTurnColor = 2;
+        const result = judgeBoard(boardStatus, currenTurnColor);
+        reflect(result.statusArr);
+        reflectStatus(result.statusArr, currenTurnColor);
 
-        const stoneStatus = document.querySelector("#stone");
-        stoneStatus.innerHTML = "黒:2白:2";
-
-        const tdtag = document.querySelector("#battle-status td div");
-        tdtag.setAttribute("class", "label-you");
-
-        reflect(boardStatus, currenTurnColor);
-        putOthello(boardStatus, currenTurnColor);
+        setOnClickToGrid(result.statusArr, currenTurnColor);
         setOnClickToReset();
       }
       window.onload = init;
