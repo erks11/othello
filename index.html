@@ -279,10 +279,7 @@
         for (var i = 0; i < statusArr.length; i++) {
           for (var k = 0; k < statusArr[i].length; k++) {
             td_list[8 * i + k].removeAttribute("class");
-            if (
-              (statusArr[i][k] === 1 || statusArr[i][k] === 2) &&
-              list[8 * i + k].classList.length > 0
-            ) {
+            if (statusArr[i][k] > 0 && list[8 * i + k].classList.length > 0) {
               list[8 * i + k].setAttribute("class", "stone");
             }
             if (statusArr[i][k] === -1) {
