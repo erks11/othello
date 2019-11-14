@@ -184,7 +184,7 @@
         <tr>
           <td>
             <button id="reset">reset</button>
-            <button>GiveUp</button>
+            <!-- <button>GiveUp</button> -->
           </td>
         </tr>
         <tr>
@@ -218,10 +218,15 @@
         // button
         let resetButton = document.querySelector("#reset");
         resetButton.addEventListener("click", function() {
-          init();
+          reset();
         });
       }
 
+      function reset() {
+        init();
+        let winnerStatus = document.querySelector("#winner");
+        winnerStatus.innerHTML = "";
+      }
       // clickしたときにオセロを置きたい
       function putOthello(statusArr, mycolor) {
         for (var i = 0; i < list.length; i++) {
@@ -264,17 +269,14 @@
                   if (pass >= 2) {
                     // 黒と白、石の数を数える
                     const res = countStone(statusArr);
-                    let winner;
-                    let winnerStatus = document.querySelector(
-                      "#battle-status td#winner"
-                    );
+                    let winnerStatus = document.querySelector("#winner");
                     // 勝敗を決める
                     if (res.white === res.black) {
-                      winnerStatus.innerHTML = "ひきわけ〜〜";
+                      winnerStatus.innerHTML = "引き分け";
                     } else if (res.white > res.black) {
-                      winnerStatus.innerHTML = "わたしのかち";
+                      winnerStatus.innerHTML = "わたしの勝ち";
                     } else {
-                      winnerStatus.innerHTML = "あなたのかち";
+                      winnerStatus.innerHTML = "あなたの勝ち";
                     }
                     break;
                   }
@@ -369,8 +371,8 @@
       function judgeGridActive(statusArr, mycolor, i, k) {
         let res;
         let resArr = [];
-        for (var i2 = i - 1; i2 <= i + 1; i2++) {
-          for (var k2 = k - 1; k2 <= k + 1; k2++) {
+        for (let i2 = i - 1; i2 <= i + 1; i2++) {
+          for (let k2 = k - 1; k2 <= k + 1; k2++) {
             // 自分自身なのでスルー
             if (i2 === i && k2 === k) {
               continue;
@@ -391,9 +393,8 @@
       function searchOneway(statusArr, cood, xv, yv, mycolor) {
         let result = false;
         let arr = [];
-        let x = cood.x;
-        let y = cood.y;
-        // 斜めの場合
+        const x = cood.x;
+        const y = cood.y;
         let new_cood = { x: x, y: y };
         while (
           new_cood.x < 8 &&
@@ -424,7 +425,6 @@
         return { arr: arr, xv: xv, yv: yv, result: result };
       }
       function init() {
-        setOnClickToReset();
         const boardStatus = [
           [0, 0, 0, 0, 0, 0, 0, 0],
           [0, 0, 0, 0, 0, 0, 0, 0],
@@ -437,12 +437,16 @@
         ];
         // 黒が自分とする
         let currenTurnColor = 2;
-        let stoneStatus = document.querySelector("#stone");
+
+        const stoneStatus = document.querySelector("#stone");
         stoneStatus.innerHTML = "黒:2白:2";
-        let tdtag = document.querySelector("#battle-status td div");
+
+        const tdtag = document.querySelector("#battle-status td div");
         tdtag.setAttribute("class", "label-you");
+
         reflect(boardStatus, currenTurnColor);
         putOthello(boardStatus, currenTurnColor);
+        setOnClickToReset();
       }
       window.onload = init;
     </script>
