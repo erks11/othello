@@ -42,19 +42,24 @@
         border-radius: 50%;
         margin: 1px auto;
       }
+      div.stone {
+        transition: transform 1s linear 0s, background-color 0s linear 0.5s;
+      }
       div.black-stone {
+        transform: rotateY(180deg);
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        border: solid 1px black;
-        background-color: black;
+        border: solid 1px #000000;
+        background-color: #000000;
         margin: 1px auto;
       }
       div.white-stone {
+        transform: rotateY(360deg);
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        border: solid 1px black;
+        border: solid 1px #000000;
         background-color: #fff8dc;
         margin: 1px auto;
       }
@@ -274,12 +279,18 @@
         for (var i = 0; i < statusArr.length; i++) {
           for (var k = 0; k < statusArr[i].length; k++) {
             td_list[8 * i + k].removeAttribute("class");
+            if (
+              (statusArr[i][k] === 1 || statusArr[i][k] === 2) &&
+              list[8 * i + k].classList.length > 0
+            ) {
+              list[8 * i + k].setAttribute("class", "stone");
+            }
             if (statusArr[i][k] === -1) {
               td_list[8 * i + k].setAttribute("class", "active");
             } else if (statusArr[i][k] === 1) {
-              list[8 * i + k].setAttribute("class", "white-stone");
+              list[8 * i + k].classList.add("white-stone");
             } else if (statusArr[i][k] === 2) {
-              list[8 * i + k].setAttribute("class", "black-stone");
+              list[8 * i + k].classList.add("black-stone");
             } else {
               list[8 * i + k].removeAttribute("class");
             }
@@ -370,8 +381,8 @@
         // 白が1　黒が2
         // 64マス全てに対して、置けるかどうか判断したい
         let isContinue = false;
-        for (var i = 0; i < statusArr.length; i++) {
-          for (var k = 0; k < statusArr[i].length; k++) {
+        for (let i = 0; i < statusArr.length; i++) {
+          for (let k = 0; k < statusArr[i].length; k++) {
             if (statusArr[i][k] > 0) {
               // すでに置いてあったらスルーする
               continue;
