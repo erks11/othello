@@ -222,23 +222,27 @@
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0]
           ];
-          this.init(this.initialBoardStatus);
+          // 黒が自分とする
+          this.initialColor = 2;
+          this.currentColor = 2;
+
+          this.init(this.initialBoardStatus, this.initialColor);
           this.setOnClickToGrid(2);
           this.setOnClickToReset();
         }
 
-        init(initBoardStatus) {
-          // 黒が自分とする
-          const myColor = 2;
-          const result = this.judgeBoard(initBoardStatus, myColor);
+        init(initBoardStatus, initialColor) {
+          const result = this.judgeBoard(initBoardStatus, initialColor);
           this.reflect(result.statusArr);
-          this.reflectStatus(result.statusArr, myColor);
+          this.reflectStatus(result.statusArr, initialColor);
         }
         // buttonを押したらresetしたい
         setOnClickToReset() {
           let resetButton = document.querySelector("#reset");
           resetButton.addEventListener("click", () => {
-            this.reset();
+            if (this.currentColor === this.initialColor) {
+              this.reset();
+            }
           });
         }
 
@@ -259,13 +263,14 @@
           winnerStatus.innerHTML = "";
         }
         // clickしたときにオセロを置きたい
-        setOnClickToGrid(mycolor) {
+        setOnClickToGrid() {
           for (var i = 0; i < this.list.length; i++) {
             this.list[i].addEventListener(
               "click",
               (i2 => {
                 return e => {
                   let statusArr = this.boardStatus;
+                  const mycolor = this.currentColor;
                   // statusArrをクリックした状態に反映したい
                   let x = Math.floor(i2 / 8);
                   let y = i2 % 8;
@@ -295,7 +300,8 @@
 
         // コンピュータの１ターンの処理
         executeCOMTurn(statusArr, activeArr) {
-          const comColor = 1;
+          this.currentColor = 1;
+          const comColor = this.currentColor;
           // activeである-1の座標が入った配列を作る
           // その配列の中からランダムで、白が置く場所をきめる
           const cood =
@@ -309,6 +315,7 @@
 
         // オセロ１ターンの処理
         executeOneTurn(statusArr, cood, currentColor) {
+          currentColor = this.currentColor;
           let isFinish = false;
           // ひっくり返す
           let reverseStatusArr = this.reverseStone(statusArr, {
@@ -318,8 +325,10 @@
 
           if (currentColor === 1) {
             currentColor = 2;
+            this.currentColor = 2;
           } else {
             currentColor = 1;
+            this.currentColor = 1;
           }
           // 次における場所があるかを判断する
           let result = this.judgeBoard(reverseStatusArr, currentColor);
@@ -336,8 +345,10 @@
           while (!result.isContinue) {
             if (currentColor === 1) {
               currentColor = 2;
+              this.currentColor = 2;
             } else {
               currentColor = 1;
+              this.currentColor = 1;
             }
             pass++;
             // passが２回だったらゲーム終了する
@@ -347,8 +358,8 @@
               break;
             }
 
-            result = this.judgeBoard(statusArr, currentColor);
-            this.reflect(statusArr);
+            result = this.judgeBoard(result.statusArr, currentColor);
+            this.reflect(result.statusArr);
             this.reflectStatus(result.statusArr, currentColor, isFinish);
           }
         }
@@ -380,6 +391,7 @@
         }
 
         reflectStatus(statusArr, mycolor, isFinish) {
+          mycolor = this.currentColor;
           let tdtag = document.querySelector("#battle-status td div");
           if (mycolor === 1) {
             tdtag.setAttribute("class", "label-me");
@@ -453,6 +465,7 @@
         judgeBoard(statusArr, mycolor) {
           let statusArrText = JSON.stringify(statusArr);
           let judgeStatusArr = JSON.parse(statusArrText);
+          mycolor = this.currentColor;
           // 白が1　黒が2
           // 64マス全てに対して、置けるかどうか判断したい
           let isContinue = false;
@@ -491,6 +504,7 @@
 
         // 周囲8マスをみてる
         judgeGridActive(statusArr, mycolor, i, k) {
+          mycolor = this.currentColor;
           let res;
           let resArr = [];
           for (let i2 = i - 1; i2 <= i + 1; i2++) {
@@ -513,6 +527,7 @@
         }
 
         searchOneway(statusArr, cood, xv, yv, mycolor) {
+          mycolor = this.currentColor;
           let result = false;
           let arr = [];
           const x = cood.x;
