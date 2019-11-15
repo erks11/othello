@@ -198,292 +198,361 @@
       </table>
     </div>
     <script>
-      const td_list = document.querySelectorAll("#othello td");
-      const list = document.querySelectorAll("#othello td div");
-
-      // buttonを押したらresetしたい
-      function setOnClickToReset() {
-        // button
-        let resetButton = document.querySelector("#reset");
-        resetButton.addEventListener("click", function() {
-          reset();
-        });
-      }
-
-      function reset() {
-        init();
-        let winnerStatus = document.querySelector("#winner");
-        winnerStatus.innerHTML = "";
-      }
-
-      // clickしたときにオセロを置きたい
-      function setOnClickToGrid(statusArr, mycolor) {
-        for (var i = 0; i < list.length; i++) {
-          list[i].addEventListener(
-            "click",
-            (function(i2) {
-              return function(e) {
-                // statusArrをクリックした状態に反映したい
-                let x = Math.floor(i2 / 8);
-                let y = i2 % 8;
-                if (statusArr[x][y] > 0) {
-                  return;
-                }
-                if (statusArr[x][y] != -1) {
-                  return;
-                }
-                statusArr[x][y] = mycolor;
-
-                mycolor = changeTurn(mycolor);
-                executeOneTurn(statusArr, { x: x, y: y }, mycolor);
-              };
-            })(i),
-            false
-          );
-        }
-      }
-
-      // オセロ１ターンの処理
-      function executeOneTurn(statusArr, cood, mycolor) {
-        let isFinish = false;
-        // ひっくり返す
-        reverseStone(statusArr, { x: cood.x, y: cood.y });
-
-        // 次における場所があるかを判断する
-        let result = judgeBoard(statusArr, mycolor);
-        // 反映する
-        reflect(result.statusArr);
-        reflectStatus(result.statusArr, mycolor, isFinish);
-
-        // pass判定
-        let pass = 0;
-        while (!result.isContinue) {
-          mycolor = changeTurn(mycolor);
-          pass++;
-          // passが２回だったらゲーム終了する
-          if (pass >= 2) {
-            isFinish = true;
-            reflectStatus(result.statusArr, mycolor, isFinish);
-            break;
-          }
-
-          result = judgeBoard(statusArr, mycolor);
-          reflect(statusArr);
-          reflectStatus(result.statusArr, mycolor, isFinish);
-        }
-      }
-
-      // statusArrの状態を盤面に反映
-      function reflect(statusArr) {
-        // 64マス全てに対して、どうなってるのか判断したい
-        for (var i = 0; i < statusArr.length; i++) {
-          for (var k = 0; k < statusArr[i].length; k++) {
-            td_list[8 * i + k].removeAttribute("class");
-            if (statusArr[i][k] > 0 && list[8 * i + k].classList.length > 0) {
-              list[8 * i + k].setAttribute("class", "stone");
-            }
-            if (statusArr[i][k] === -1) {
-              td_list[8 * i + k].setAttribute("class", "active");
-            } else if (statusArr[i][k] === 1) {
-              list[8 * i + k].classList.add("white-stone");
-            } else if (statusArr[i][k] === 2) {
-              list[8 * i + k].classList.add("black-stone");
-            } else {
-              list[8 * i + k].removeAttribute("class");
-            }
-          }
-        }
-        return;
-      }
-
-      function reflectStatus(statusArr, mycolor, isFinish) {
-        let tdtag = document.querySelector("#battle-status td div");
-        if (mycolor === 1) {
-          tdtag.setAttribute("class", "label-me");
-        } else {
-          tdtag.setAttribute("class", "label-you");
-        }
-        const res = countStone(statusArr);
-        let stoneStatus = document.querySelector("#stone");
-        stoneStatus.innerHTML = "●:" + res.black + " ○:" + res.white;
-        if (isFinish) {
-          // 黒と白、石の数を数える
-          const res = countStone(statusArr);
-          let winnerStatus = document.querySelector("#winner");
-          // 勝敗を決める
-          if (res.white === res.black) {
-            winnerStatus.innerHTML = "引き分け";
-          } else if (res.white > res.black) {
-            winnerStatus.innerHTML = "わたしの勝ち";
-          } else {
-            winnerStatus.innerHTML = "あなたの勝ち";
-          }
-        }
-      }
-
-      function changeTurn(mycolor) {
-        if (mycolor === 2) {
-          mycolor = 1;
-        } else {
-          mycolor = 2;
-        }
-        return mycolor;
-      }
-
-      // 黒と白の石の数を数える
-      function countStone(statusArr) {
-        let whiteCount = 0;
-        let blackCount = 0;
-        for (let i = 0; i < statusArr.length; i++) {
-          for (let k = 0; k < statusArr[i].length; k++) {
-            if (statusArr[i][k] === 1) {
-              whiteCount++;
-            } else if (statusArr[i][k] === 2) {
-              blackCount++;
-            }
-          }
-        }
-        return { white: whiteCount, black: blackCount };
-      }
-
-      function reverseStone(statusArr, cood) {
-        // 置かれた石の周り８方向をみたい
-        let resArr = judgeGridActive(
-          statusArr,
-          statusArr[cood.x][cood.y],
-          cood.x,
-          cood.y
-        );
-
-        // searchOnewayでarrとxv,yvを受け取り、statusArrを変えてreturnしたい
-        resArr.forEach(res => {
-          // resArrのresultがtrueのものに対して、処理を行う
-          // ここでx,yを定義し、多方向でひっくり返せるようにする
-          let x = cood.x;
-          let y = cood.y;
-          if (res.result) {
-            res.arr.forEach(i => {
-              if (i != statusArr[x][y]) {
-                x += res.xv;
-                y += res.yv;
-                statusArr[x][y] = statusArr[cood.x][cood.y];
-              }
-            });
-          }
-        });
-        return statusArr;
-      }
-
-      function judgeBoard(statusArr, mycolor) {
-        // 白が1　黒が2
-        // 64マス全てに対して、置けるかどうか判断したい
-        let isContinue = false;
-        for (let i = 0; i < statusArr.length; i++) {
-          for (let k = 0; k < statusArr[i].length; k++) {
-            if (statusArr[i][k] > 0) {
-              // すでに置いてあったらスルーする
-              continue;
-            }
-            // いったんactiveを非表示にする
-            if (statusArr[i][k] === -1) {
-              statusArr[i][k] = 0;
-            }
-
-            // 置けるかどうか判断する
-            // 置けるならactiveを表示
-            let resArr = judgeGridActive(statusArr, mycolor, i, k);
-            // resArrのresultに一つでもtrueがあればそのtdをactiveにする
-            resArr.forEach(res => {
-              if (res.result) {
-                isContinue = true;
-                statusArr[i][k] = -1;
-              }
-            });
-          }
+      class Othello {
+        constructor() {
+          this.td_list = document.querySelectorAll("#othello td");
+          this.list = document.querySelectorAll("#othello td div");
+          this.boardStatus = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 2, 0, 0, 0],
+            [0, 0, 0, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]
+          ];
+          this.initialBoardStatus = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 2, 0, 0, 0],
+            [0, 0, 0, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]
+          ];
+          this.init(this.initialBoardStatus);
+          this.setOnClickToGrid(2);
+          this.setOnClickToReset();
         }
 
-        return { isContinue: isContinue, statusArr: statusArr };
-      }
+        init(initBoardStatus) {
+          // 黒が自分とする
+          const myColor = 2;
+          const result = this.judgeBoard(initBoardStatus, myColor);
+          this.reflect(result.statusArr);
+          this.reflectStatus(result.statusArr, myColor);
+        }
+        // buttonを押したらresetしたい
+        setOnClickToReset() {
+          let resetButton = document.querySelector("#reset");
+          resetButton.addEventListener("click", () => {
+            this.reset();
+          });
+        }
 
-      // 周囲8マスをみてる
-      function judgeGridActive(statusArr, mycolor, i, k) {
-        let res;
-        let resArr = [];
-        for (let i2 = i - 1; i2 <= i + 1; i2++) {
-          for (let k2 = k - 1; k2 <= k + 1; k2++) {
-            // 自分自身なのでスルー
-            if (i2 === i && k2 === k) {
-              continue;
-            }
-            res = searchOneway(
-              statusArr,
-              { x: i, y: k },
-              i2 - i,
-              k2 - k,
-              mycolor
+        reset() {
+          const boardStatus = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]
+          ];
+          this.reflect(boardStatus);
+          this.init(this.initialBoardStatus);
+          const winnerStatus = document.querySelector("#winner");
+          winnerStatus.innerHTML = "";
+        }
+        // clickしたときにオセロを置きたい
+        setOnClickToGrid(mycolor) {
+          for (var i = 0; i < this.list.length; i++) {
+            this.list[i].addEventListener(
+              "click",
+              (i2 => {
+                return e => {
+                  let statusArr = this.boardStatus;
+                  // statusArrをクリックした状態に反映したい
+                  let x = Math.floor(i2 / 8);
+                  let y = i2 % 8;
+
+                  if (statusArr[x][y] > 0) {
+                    return;
+                  }
+                  if (statusArr[x][y] != -1) {
+                    return;
+                  }
+                  statusArr[x][y] = mycolor;
+                  const result = this.executeOneTurn(
+                    statusArr,
+                    { x: x, y: y },
+                    mycolor
+                  );
+
+                  window.setTimeout(() => {
+                    this.executeCOMTurn(result.statusArr, result.activeArr);
+                  }, 2000);
+                };
+              })(i),
+              false
             );
-            resArr.push(res);
           }
         }
-        return resArr;
-      }
 
-      function searchOneway(statusArr, cood, xv, yv, mycolor) {
-        let result = false;
-        let arr = [];
-        const x = cood.x;
-        const y = cood.y;
-        let new_cood = { x: x, y: y };
-        while (
-          new_cood.x < 8 &&
-          new_cood.x >= 0 &&
-          (new_cood.y < 8 && new_cood.y >= 0)
-        ) {
-          new_cood.x += xv;
-          new_cood.y += yv;
-          if (
-            new_cood.x >= 0 &&
-            new_cood.y >= 0 &&
-            new_cood.x < 8 &&
-            new_cood.y < 8
-          ) {
-            let stat = statusArr[new_cood.x][new_cood.y];
-            arr.push(stat);
-            // 隣が空白か、自分の色だったら抜ける
-            if (stat <= 0 || stat == mycolor) {
+        // コンピュータの１ターンの処理
+        executeCOMTurn(statusArr, activeArr) {
+          const comColor = 1;
+          // activeである-1の座標が入った配列を作る
+          // その配列の中からランダムで、白が置く場所をきめる
+          const cood =
+            activeArr[Math.floor(Math.random() * (activeArr.length - 1))];
+
+          // そこにおく
+          statusArr[cood.x][cood.y] = comColor;
+          // それを反映させる
+          this.executeOneTurn(statusArr, cood, comColor);
+        }
+
+        // オセロ１ターンの処理
+        executeOneTurn(statusArr, cood, currentColor) {
+          let isFinish = false;
+          // ひっくり返す
+          let reverseStatusArr = this.reverseStone(statusArr, {
+            x: cood.x,
+            y: cood.y
+          });
+
+          if (currentColor === 1) {
+            currentColor = 2;
+          } else {
+            currentColor = 1;
+          }
+          // 次における場所があるかを判断する
+          let result = this.judgeBoard(reverseStatusArr, currentColor);
+          // 反映する
+          this.reflect(result.statusArr);
+          this.reflectStatus(result.statusArr, currentColor, isFinish);
+
+          if (result.isContinue) {
+            return result;
+          }
+
+          // pass判定
+          let pass = 0;
+          while (!result.isContinue) {
+            if (currentColor === 1) {
+              currentColor = 2;
+            } else {
+              currentColor = 1;
+            }
+            pass++;
+            // passが２回だったらゲーム終了する
+            if (pass >= 2) {
+              isFinish = true;
+              this.reflectStatus(result.statusArr, currentColor, isFinish);
               break;
             }
+
+            result = this.judgeBoard(statusArr, currentColor);
+            this.reflect(statusArr);
+            this.reflectStatus(result.statusArr, currentColor, isFinish);
           }
         }
-        // arr[0]が空白じゃなくて、自分の色でもない
-        // arr[1]以上にずっと空白がないかつ自分の色がいる
-        if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
-          result = true;
+
+        // statusArrの状態を盤面に反映
+        reflect(statusArr) {
+          // 64マス全てに対して、どうなってるのか判断したい
+          for (var i = 0; i < statusArr.length; i++) {
+            for (var k = 0; k < statusArr[i].length; k++) {
+              this.td_list[8 * i + k].removeAttribute("class");
+              if (
+                statusArr[i][k] > 0 &&
+                this.list[8 * i + k].classList.length > 0
+              ) {
+                this.list[8 * i + k].setAttribute("class", "stone");
+              }
+              if (statusArr[i][k] === -1) {
+                this.td_list[8 * i + k].setAttribute("class", "active");
+              } else if (statusArr[i][k] === 1) {
+                this.list[8 * i + k].classList.add("white-stone");
+              } else if (statusArr[i][k] === 2) {
+                this.list[8 * i + k].classList.add("black-stone");
+              } else {
+                this.list[8 * i + k].removeAttribute("class");
+              }
+            }
+          }
+          return;
         }
-        return { arr: arr, xv: xv, yv: yv, result: result };
+
+        reflectStatus(statusArr, mycolor, isFinish) {
+          let tdtag = document.querySelector("#battle-status td div");
+          if (mycolor === 1) {
+            tdtag.setAttribute("class", "label-me");
+          } else {
+            tdtag.setAttribute("class", "label-you");
+          }
+          const res = this.countStone(statusArr);
+          let stoneStatus = document.querySelector("#stone");
+          stoneStatus.innerHTML = "●:" + res.black + " ○:" + res.white;
+          if (isFinish) {
+            // 黒と白、石の数を数える
+            const res = this.countStone(statusArr);
+            let winnerStatus = document.querySelector("#winner");
+            // 勝敗を決める
+            if (res.white === res.black) {
+              winnerStatus.innerHTML = "引き分け";
+            } else if (res.white > res.black) {
+              winnerStatus.innerHTML = "わたしの勝ち";
+            } else {
+              winnerStatus.innerHTML = "あなたの勝ち";
+            }
+          }
+        }
+
+        // 黒と白の石の数を数える
+        countStone(statusArr) {
+          let whiteCount = 0;
+          let blackCount = 0;
+          for (let i = 0; i < statusArr.length; i++) {
+            for (let k = 0; k < statusArr[i].length; k++) {
+              if (statusArr[i][k] === 1) {
+                whiteCount++;
+              } else if (statusArr[i][k] === 2) {
+                blackCount++;
+              }
+            }
+          }
+          return { white: whiteCount, black: blackCount };
+        }
+
+        reverseStone(statusArr, cood) {
+          let statusArrText = JSON.stringify(statusArr);
+          let reverseStatusArr = JSON.parse(statusArrText);
+          // 置かれた石の周り８方向をみたい
+          let resArr = this.judgeGridActive(
+            reverseStatusArr,
+            reverseStatusArr[cood.x][cood.y],
+            cood.x,
+            cood.y
+          );
+
+          // searchOnewayでarrとxv,yvを受け取り、statusArrを変えてreturnしたい
+          resArr.forEach(res => {
+            // resArrのresultがtrueのものに対して、処理を行う
+            // ここでx,yを定義し、多方向でひっくり返せるようにする
+            let x = cood.x;
+            let y = cood.y;
+            if (res.result) {
+              res.arr.forEach(i => {
+                if (i != reverseStatusArr[x][y]) {
+                  x += res.xv;
+                  y += res.yv;
+                  reverseStatusArr[x][y] = reverseStatusArr[cood.x][cood.y];
+                }
+              });
+            }
+          });
+          return reverseStatusArr;
+        }
+
+        judgeBoard(statusArr, mycolor) {
+          let statusArrText = JSON.stringify(statusArr);
+          let judgeStatusArr = JSON.parse(statusArrText);
+          // 白が1　黒が2
+          // 64マス全てに対して、置けるかどうか判断したい
+          let isContinue = false;
+          let activeArr = [];
+          for (let i = 0; i < judgeStatusArr.length; i++) {
+            for (let k = 0; k < judgeStatusArr[i].length; k++) {
+              if (judgeStatusArr[i][k] > 0) {
+                // すでに置いてあったらスルーする
+                continue;
+              }
+              // いったんactiveを非表示にする
+              if (judgeStatusArr[i][k] === -1) {
+                judgeStatusArr[i][k] = 0;
+              }
+
+              // 置けるかどうか判断する
+              // 置けるならactiveを表示
+              let resArr = this.judgeGridActive(judgeStatusArr, mycolor, i, k);
+              // resArrのresultに一つでもtrueがあればそのtdをactiveにする
+              resArr.forEach(res => {
+                if (res.result) {
+                  activeArr.push({ x: i, y: k });
+                  isContinue = true;
+                  judgeStatusArr[i][k] = -1;
+                }
+              });
+            }
+          }
+          this.boardStatus = judgeStatusArr;
+          return {
+            isContinue: isContinue,
+            statusArr: judgeStatusArr,
+            activeArr: activeArr
+          };
+        }
+
+        // 周囲8マスをみてる
+        judgeGridActive(statusArr, mycolor, i, k) {
+          let res;
+          let resArr = [];
+          for (let i2 = i - 1; i2 <= i + 1; i2++) {
+            for (let k2 = k - 1; k2 <= k + 1; k2++) {
+              // 自分自身なのでスルー
+              if (i2 === i && k2 === k) {
+                continue;
+              }
+              res = this.searchOneway(
+                statusArr,
+                { x: i, y: k },
+                i2 - i,
+                k2 - k,
+                mycolor
+              );
+              resArr.push(res);
+            }
+          }
+          return resArr;
+        }
+
+        searchOneway(statusArr, cood, xv, yv, mycolor) {
+          let result = false;
+          let arr = [];
+          const x = cood.x;
+          const y = cood.y;
+          let new_cood = { x: x, y: y };
+          while (
+            new_cood.x < 8 &&
+            new_cood.x >= 0 &&
+            (new_cood.y < 8 && new_cood.y >= 0)
+          ) {
+            new_cood.x += xv;
+            new_cood.y += yv;
+            if (
+              new_cood.x >= 0 &&
+              new_cood.y >= 0 &&
+              new_cood.x < 8 &&
+              new_cood.y < 8
+            ) {
+              let stat = statusArr[new_cood.x][new_cood.y];
+              arr.push(stat);
+              // 隣が空白か、自分の色だったら抜ける
+              if (stat <= 0 || stat == mycolor) {
+                break;
+              }
+            }
+          }
+          // arr[0]が空白じゃなくて、自分の色でもない
+          // arr[1]以上にずっと空白がないかつ自分の色がいる
+          if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
+            result = true;
+          }
+          return { arr: arr, xv: xv, yv: yv, result: result };
+        }
+      }
+      function load() {
+        const othello = new Othello();
+        window.othello = othello;
       }
 
-      function init() {
-        const boardStatus = [
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 1, 2, 0, 0, 0],
-          [0, 0, 0, 2, 1, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0]
-        ];
-        // 黒が自分とする
-        let currenTurnColor = 2;
-        const result = judgeBoard(boardStatus, currenTurnColor);
-        reflect(result.statusArr);
-        reflectStatus(result.statusArr, currenTurnColor);
-
-        setOnClickToGrid(result.statusArr, currenTurnColor);
-        setOnClickToReset();
-      }
-      window.onload = init;
+      window.onload = load;
     </script>
   </body>
 </html>
