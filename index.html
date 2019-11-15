@@ -198,53 +198,164 @@
       </table>
     </div>
     <script>
+      function reflectHTML() {
+        let td_list = document.querySelectorAll("#othello td");
+        let list = document.querySelectorAll("#othello td div");
+        let tdtag = document.querySelector("#battle-status td div");
+        const stoneStatus = document.querySelector("#stone");
+        let stoneCountStr = "";
+        const winnerStatus = document.querySelector("#winner");
+        const resetButton = document.querySelector("#reset");
+        let mycolor;
+
+        const data = {
+          winner: 0,
+          blackStone: 2,
+          whiteStone: 2,
+          boardStatus: [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 2, 0, 0, 0],
+            [0, 0, 0, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]
+          ],
+          currentColor: 2
+        };
+
+        let observer = {
+          set: function(obj, prop, value) {
+            if (prop === "boardStatus") {
+              // 盤面に反映する
+              for (let i = 0; i < value.length; i++) {
+                for (let k = 0; k < value[i].length; k++) {
+                  td_list[8 * i + k].removeAttribute("class");
+                  if (value[i][k] > 0 && list[8 * i + k].classList.length > 0) {
+                    list[8 * i + k].setAttribute("class", "stone");
+                  }
+                  if (value[i][k] === -1) {
+                    td_list[8 * i + k].setAttribute("class", "active");
+                  } else if (value[i][k] === 1) {
+                    list[8 * i + k].classList.add("white-stone");
+                  } else if (value[i][k] === 2) {
+                    list[8 * i + k].classList.add("black-stone");
+                  } else {
+                    list[8 * i + k].removeAttribute("class");
+                  }
+                }
+              }
+            }
+            if (prop === "blackStone") {
+              stoneCountStr += "●:" + value;
+            }
+            if (prop === "whiteStone") {
+              stoneCountStr += " ○:" + value;
+            }
+            if (prop === "winner") {
+              if (value === -1) {
+                winnerStatus.innerHTML = "引き分け";
+              } else if (value === 1) {
+                winnerStatus.innerHTML = "わたしの勝ち";
+              } else if (value === 2) {
+                winnerStatus.innerHTML = "あなたの勝ち";
+              } else {
+                winnerStatus.innerHTML = "";
+              }
+            }
+            if (prop === "currentColor") {
+              mycolor = value;
+              if (value === 1) {
+                tdtag.setAttribute("class", "label-me");
+              } else {
+                tdtag.setAttribute("class", "label-you");
+              }
+            }
+            obj[prop] = value;
+
+            return true;
+          }
+        };
+
+        let observe = new Proxy(data, observer);
+
+        const othello = new Othello(observe);
+        window.othello = othello;
+
+        stoneStatus.innerHTML = stoneCountStr;
+
+        // buttonを押したらresetしたい
+        resetButton.addEventListener("click", () => {
+          if (mycolor === othello.initialColor) {
+            othello.reset();
+          }
+        });
+
+        // clickしたときにオセロを置きたい
+
+        for (let i = 0; i < list.length; i++) {
+          list[i].addEventListener(
+            "click",
+            (i2 => {
+              return e => {
+                let statusArr = othello.data.boardStatus;
+                const mycolor = othello.data.currentColor;
+                // statusArrをクリックした状態に反映したい
+                let x = Math.floor(i2 / 8);
+                let y = i2 % 8;
+
+                if (statusArr[x][y] > 0) {
+                  return;
+                }
+                if (statusArr[x][y] != -1) {
+                  return;
+                }
+                statusArr[x][y] = mycolor;
+                const result = othello.executeOneTurn(
+                  statusArr,
+                  { x: x, y: y },
+                  mycolor
+                );
+
+                window.setTimeout(() => {
+                  othello.executeCOMTurn(result.statusArr, result.activeArr);
+                }, 2000);
+              };
+            })(i),
+            false
+          );
+        }
+      }
+
       class Othello {
-        constructor() {
-          this.td_list = document.querySelectorAll("#othello td");
-          this.list = document.querySelectorAll("#othello td div");
-          this.boardStatus = [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 2, 0, 0, 0],
-            [0, 0, 0, 2, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0]
-          ];
-          this.initialBoardStatus = [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 2, 0, 0, 0],
-            [0, 0, 0, 2, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0]
-          ];
+        constructor(observe) {
+          (this.data = observe),
+            (this.initialBoardStatus = [
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 1, 2, 0, 0, 0],
+              [0, 0, 0, 2, 1, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0]
+            ]);
           // 黒が自分とする
           this.initialColor = 2;
-          this.currentColor = 2;
 
           this.init(this.initialBoardStatus, this.initialColor);
-          this.setOnClickToGrid(2);
-          this.setOnClickToReset();
         }
 
         init(initBoardStatus, initialColor) {
           const result = this.judgeBoard(initBoardStatus, initialColor);
-          this.reflect(result.statusArr);
-          this.reflectStatus(result.statusArr, initialColor);
         }
-        // buttonを押したらresetしたい
-        setOnClickToReset() {
-          let resetButton = document.querySelector("#reset");
-          resetButton.addEventListener("click", () => {
-            if (this.currentColor === this.initialColor) {
-              this.reset();
-            }
-          });
-        }
+
+        // trigger() {
+        //   if (typeof this.callback === "function") {
+        //     this.callback();
+        //   }
+        // }
 
         reset() {
           const boardStatus = [
@@ -257,51 +368,13 @@
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0]
           ];
-          this.reflect(boardStatus);
           this.init(this.initialBoardStatus);
-          const winnerStatus = document.querySelector("#winner");
-          winnerStatus.innerHTML = "";
-        }
-        // clickしたときにオセロを置きたい
-        setOnClickToGrid() {
-          for (var i = 0; i < this.list.length; i++) {
-            this.list[i].addEventListener(
-              "click",
-              (i2 => {
-                return e => {
-                  let statusArr = this.boardStatus;
-                  const mycolor = this.currentColor;
-                  // statusArrをクリックした状態に反映したい
-                  let x = Math.floor(i2 / 8);
-                  let y = i2 % 8;
-
-                  if (statusArr[x][y] > 0) {
-                    return;
-                  }
-                  if (statusArr[x][y] != -1) {
-                    return;
-                  }
-                  statusArr[x][y] = mycolor;
-                  const result = this.executeOneTurn(
-                    statusArr,
-                    { x: x, y: y },
-                    mycolor
-                  );
-
-                  window.setTimeout(() => {
-                    this.executeCOMTurn(result.statusArr, result.activeArr);
-                  }, 2000);
-                };
-              })(i),
-              false
-            );
-          }
         }
 
         // コンピュータの１ターンの処理
         executeCOMTurn(statusArr, activeArr) {
-          this.currentColor = 1;
-          const comColor = this.currentColor;
+          this.data.currentColor = 1;
+          const comColor = this.data.currentColor;
           // activeである-1の座標が入った配列を作る
           // その配列の中からランダムで、白が置く場所をきめる
           const cood =
@@ -315,8 +388,7 @@
 
         // オセロ１ターンの処理
         executeOneTurn(statusArr, cood, currentColor) {
-          currentColor = this.currentColor;
-          let isFinish = false;
+          currentColor = this.data.currentColor;
           // ひっくり返す
           let reverseStatusArr = this.reverseStone(statusArr, {
             x: cood.x,
@@ -332,9 +404,6 @@
           }
           // 次における場所があるかを判断する
           let result = this.judgeBoard(reverseStatusArr, currentColor);
-          // 反映する
-          this.reflect(result.statusArr);
-          this.reflectStatus(result.statusArr, currentColor, isFinish);
 
           if (result.isContinue) {
             return result;
@@ -353,66 +422,22 @@
             pass++;
             // passが２回だったらゲーム終了する
             if (pass >= 2) {
-              isFinish = true;
-              this.reflectStatus(result.statusArr, currentColor, isFinish);
+              finish(result.statusArr);
               break;
             }
 
             result = this.judgeBoard(result.statusArr, currentColor);
-            this.reflect(result.statusArr);
-            this.reflectStatus(result.statusArr, currentColor, isFinish);
           }
         }
 
-        // statusArrの状態を盤面に反映
-        reflect(statusArr) {
-          // 64マス全てに対して、どうなってるのか判断したい
-          for (var i = 0; i < statusArr.length; i++) {
-            for (var k = 0; k < statusArr[i].length; k++) {
-              this.td_list[8 * i + k].removeAttribute("class");
-              if (
-                statusArr[i][k] > 0 &&
-                this.list[8 * i + k].classList.length > 0
-              ) {
-                this.list[8 * i + k].setAttribute("class", "stone");
-              }
-              if (statusArr[i][k] === -1) {
-                this.td_list[8 * i + k].setAttribute("class", "active");
-              } else if (statusArr[i][k] === 1) {
-                this.list[8 * i + k].classList.add("white-stone");
-              } else if (statusArr[i][k] === 2) {
-                this.list[8 * i + k].classList.add("black-stone");
-              } else {
-                this.list[8 * i + k].removeAttribute("class");
-              }
-            }
-          }
-          return;
-        }
-
-        reflectStatus(statusArr, mycolor, isFinish) {
-          mycolor = this.currentColor;
-          let tdtag = document.querySelector("#battle-status td div");
-          if (mycolor === 1) {
-            tdtag.setAttribute("class", "label-me");
+        finish(statusArr) {
+          // 勝敗を決める
+          if (this.data.whiteStone === this.data.blackStone) {
+            this.data.winner = -1;
+          } else if (this.data.whiteStone > this.data.blackStone) {
+            this.data.winner = 1;
           } else {
-            tdtag.setAttribute("class", "label-you");
-          }
-          const res = this.countStone(statusArr);
-          let stoneStatus = document.querySelector("#stone");
-          stoneStatus.innerHTML = "●:" + res.black + " ○:" + res.white;
-          if (isFinish) {
-            // 黒と白、石の数を数える
-            const res = this.countStone(statusArr);
-            let winnerStatus = document.querySelector("#winner");
-            // 勝敗を決める
-            if (res.white === res.black) {
-              winnerStatus.innerHTML = "引き分け";
-            } else if (res.white > res.black) {
-              winnerStatus.innerHTML = "わたしの勝ち";
-            } else {
-              winnerStatus.innerHTML = "あなたの勝ち";
-            }
+            this.data.winner = 2;
           }
         }
 
@@ -429,6 +454,8 @@
               }
             }
           }
+          this.data.whiteStone = whiteCount;
+          this.data.blackCount = blackCount;
           return { white: whiteCount, black: blackCount };
         }
 
@@ -465,7 +492,7 @@
         judgeBoard(statusArr, mycolor) {
           let statusArrText = JSON.stringify(statusArr);
           let judgeStatusArr = JSON.parse(statusArrText);
-          mycolor = this.currentColor;
+          mycolor = this.data.currentColor;
           // 白が1　黒が2
           // 64マス全てに対して、置けるかどうか判断したい
           let isContinue = false;
@@ -494,7 +521,7 @@
               });
             }
           }
-          this.boardStatus = judgeStatusArr;
+          this.data.boardStatus = judgeStatusArr;
           return {
             isContinue: isContinue,
             statusArr: judgeStatusArr,
@@ -504,7 +531,7 @@
 
         // 周囲8マスをみてる
         judgeGridActive(statusArr, mycolor, i, k) {
-          mycolor = this.currentColor;
+          mycolor = this.data.currentColor;
           let res;
           let resArr = [];
           for (let i2 = i - 1; i2 <= i + 1; i2++) {
@@ -527,7 +554,7 @@
         }
 
         searchOneway(statusArr, cood, xv, yv, mycolor) {
-          mycolor = this.currentColor;
+          mycolor = this.data.currentColor;
           let result = false;
           let arr = [];
           const x = cood.x;
@@ -557,17 +584,14 @@
           // arr[0]が空白じゃなくて、自分の色でもない
           // arr[1]以上にずっと空白がないかつ自分の色がいる
           if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
+            console.log("in active true");
             result = true;
           }
           return { arr: arr, xv: xv, yv: yv, result: result };
         }
       }
-      function load() {
-        const othello = new Othello();
-        window.othello = othello;
-      }
 
-      window.onload = load;
+      window.onload = reflectHTML;
     </script>
   </body>
 </html>
