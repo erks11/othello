@@ -203,7 +203,6 @@
         let list = document.querySelectorAll("#othello td div");
         let tdtag = document.querySelector("#battle-status td div");
         const stoneStatus = document.querySelector("#stone");
-        let stoneCountStr = "";
         const winnerStatus = document.querySelector("#winner");
         const resetButton = document.querySelector("#reset");
         let mycolor;
@@ -247,12 +246,11 @@
                 }
               }
             }
-            if (prop === "blackStone") {
-              stoneCountStr += "●:" + value;
+            if (prop === "stoneCount") {
+              console.log(value);
+              stoneStatus.innerHTML = value;
             }
-            if (prop === "whiteStone") {
-              stoneCountStr += " ○:" + value;
-            }
+
             if (prop === "winner") {
               if (value === -1) {
                 winnerStatus.innerHTML = "引き分け";
@@ -282,8 +280,6 @@
 
         const othello = new Othello(observe);
         window.othello = othello;
-
-        stoneStatus.innerHTML = stoneCountStr;
 
         // buttonを押したらresetしたい
         resetButton.addEventListener("click", () => {
@@ -349,6 +345,7 @@
 
         init(initBoardStatus, initialColor) {
           const result = this.judgeBoard(initBoardStatus, initialColor);
+          this.countStone(initBoardStatus);
         }
 
         // trigger() {
@@ -397,13 +394,14 @@
 
           if (currentColor === 1) {
             currentColor = 2;
-            this.currentColor = 2;
+            this.data.currentColor = 2;
           } else {
             currentColor = 1;
-            this.currentColor = 1;
+            this.data.currentColor = 1;
           }
           // 次における場所があるかを判断する
           let result = this.judgeBoard(reverseStatusArr, currentColor);
+          this.countStone(result.statusArr);
 
           if (result.isContinue) {
             return result;
@@ -414,15 +412,15 @@
           while (!result.isContinue) {
             if (currentColor === 1) {
               currentColor = 2;
-              this.currentColor = 2;
+              this.data.currentColor = 2;
             } else {
               currentColor = 1;
-              this.currentColor = 1;
+              this.data.currentColor = 1;
             }
             pass++;
             // passが２回だったらゲーム終了する
             if (pass >= 2) {
-              finish(result.statusArr);
+              this.finish(result.statusArr);
               break;
             }
 
@@ -431,10 +429,11 @@
         }
 
         finish(statusArr) {
+          const res = this.countStone(statusArr);
           // 勝敗を決める
-          if (this.data.whiteStone === this.data.blackStone) {
+          if (res.white === res.black) {
             this.data.winner = -1;
-          } else if (this.data.whiteStone > this.data.blackStone) {
+          } else if (res.white > res.black) {
             this.data.winner = 1;
           } else {
             this.data.winner = 2;
@@ -454,8 +453,7 @@
               }
             }
           }
-          this.data.whiteStone = whiteCount;
-          this.data.blackCount = blackCount;
+          this.data.stoneCount = "●:" + blackCount + " ○:" + whiteCount;
           return { white: whiteCount, black: blackCount };
         }
 
@@ -584,7 +582,6 @@
           // arr[0]が空白じゃなくて、自分の色でもない
           // arr[1]以上にずっと空白がないかつ自分の色がいる
           if (arr.length >= 2 && arr[arr.length - 1] === mycolor) {
-            console.log("in active true");
             result = true;
           }
           return { arr: arr, xv: xv, yv: yv, result: result };
